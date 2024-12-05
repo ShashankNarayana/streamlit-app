@@ -6,10 +6,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 import io
+import urllib.parse
 
 # Title and description
-st.title("Image Enhancer")
-st.write("This is a basic app for image enhancement using Streamlit.")
+st.title("Image Enhancer with DSP")
+st.write("This app provides basic image enhancements with Digital Signal Processing (DSP) features.")
 
 # Email configuration (replace with your email details)
 EMAIL_ADDRESS = 'your_email@gmail.com'  # Replace with your email
@@ -37,6 +38,15 @@ def send_email(subject, body, to_email, attachment):
     text = msg.as_string()
     server.sendmail(EMAIL_ADDRESS, to_email, text)
     server.quit()
+
+# WhatsApp sharing function
+def generate_whatsapp_link(image):
+    # Save the image to a temporary file to generate a link for WhatsApp
+    temp_file_path = "/tmp/processed_image.jpg"
+    image.save(temp_file_path)
+    # Generate a link that can be shared on WhatsApp
+    file_url = f"https://api.whatsapp.com/send?text={urllib.parse.quote('Check out this image: ' + temp_file_path)}"
+    return file_url
 
 # Image upload feature
 uploaded_file = st.file_uploader("Choose an image...", type="jpg")
@@ -71,12 +81,16 @@ if uploaded_file is not None:
         f_transform_shifted = np.fft.fftshift(f_transform)
         magnitude_spectrum = np.abs(f_transform_shifted)
 
+        # Normalize and convert to displayable image
+        magnitude_spectrum = np.log(1 + magnitude_spectrum)
+        magnitude_spectrum = np.uint8(np.clip(magnitude_spectrum / np.max(magnitude_spectrum) * 255, 0, 255))
+
         st.image(magnitude_spectrum, caption="Fourier Transform Magnitude Spectrum", use_column_width=True)
 
     # Email functionality
     email = st.text_input("Enter your email address to receive the processed image:")
 
-    if email and st.button("Send Processed Image"):
+    if email and st.button("Send Processed Image via Email"):
         # Get the processed image (for example, grayscale image)
         image_bytes = io.BytesIO()
         gray_image.save(image_bytes, format='JPEG')
@@ -84,3 +98,9 @@ if uploaded_file is not None:
         # Send the email with the image as attachment
         send_email("Your Processed Image", "Here is your processed image.", email, image_bytes)
         st.success("Email sent successfully!")
+
+    # WhatsApp functionality
+    if st.button("Share on WhatsApp"):
+        # Generate WhatsApp link with the processed image
+        whatsapp_link = generate_whatsapp_link(image)
+        st.write(f"Share the image on WhatsApp using this link: {whatsapp_link}")
