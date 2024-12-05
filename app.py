@@ -17,4 +17,3 @@ if uploaded_file is not None:
     if st.button("Convert to Grayscale"):
         gray_image = image.convert("L")
         st.image(gray_image, caption="Grayscale Image", use_column_width=True)
-
